@@ -12,6 +12,7 @@ import javafx.stage.Stage;
 
 import model.App;
 
+import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
 
@@ -27,7 +28,7 @@ public class MainController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {}
 
-    public void repaintCanvas() {
+    private void repaintCanvas() {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
@@ -40,8 +41,11 @@ public class MainController implements Initializable {
 
     public void openDirectory() {
         DirectoryChooser dc = new DirectoryChooser();
-        this.app.openDirectory(dc.showDialog(this.window));
 
+        File dir = dc.showDialog(this.window);
+        if (dir == null) return;
+
+        this.app.openDirectory(dir);
         repaintCanvas();
     }
 }

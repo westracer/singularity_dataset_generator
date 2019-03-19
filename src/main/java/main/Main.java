@@ -15,14 +15,14 @@ public class Main extends Application {
         ClassLoader classLoader = getClass().getClassLoader();
         FXMLLoader loader = new FXMLLoader(classLoader.getResource("scene/main.fxml"));
         Parent root = loader.load();
+
+        MainController controller = loader.getController();
+        controller.window = primaryStage;
+
         primaryStage.setTitle("Hello World");
         primaryStage.setScene(new Scene(root, 1000, 600));
 
         primaryStage.show();
-
-        MainController controller = loader.getController();
-        controller.window = primaryStage;
-        controller.repaintCanvas();
     }
 
     public static void main(String[] args) {
