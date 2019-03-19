@@ -1,6 +1,6 @@
-package main.model;
+package model;
 
-import main.helper.FileHelper;
+import helper.FileHelper;
 
 import java.io.File;
 import java.util.ArrayList;

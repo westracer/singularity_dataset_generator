@@ -1,4 +1,4 @@
-package main.helper;
+package helper;
 
 import java.io.File;
 
