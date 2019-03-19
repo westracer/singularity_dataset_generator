@@ -40,11 +40,11 @@
         </rowConstraints>
          <children>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0" />
-            <Pane fx:id="canvasWrap" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.vgrow="ALWAYS">
-               <children>
+            <ScrollPane fx:id="canvasScroll" fitToHeight="true" fitToWidth="true" prefViewportHeight="200.0" prefViewportWidth="200.0" GridPane.columnIndex="1">
+               <content>
                   <Canvas fx:id="canvas" height="200.0" width="200.0" />
-               </children>
-            </Pane>
+               </content>
+            </ScrollPane>
          </children>
       </GridPane>
    </children>
