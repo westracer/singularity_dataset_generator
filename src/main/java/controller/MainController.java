@@ -42,7 +42,6 @@ public class MainController implements Initializable {
 
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        System.out.println(canvas.getWidth());
     }
 
     public void openDirectory() {
