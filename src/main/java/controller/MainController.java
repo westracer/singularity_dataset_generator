@@ -10,22 +10,27 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextField;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.Shape;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
+import javafx.util.Pair;
 import model.App;
 import model.BoxLabel;
+import model.Tetragon;
 
 import java.io.File;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.ResourceBundle;
+import java.util.*;
 
 enum MainState {
     Select, Move, Box, Tetragon
@@ -51,6 +56,9 @@ public class MainController implements Initializable {
     @FXML public RadioButton boxRadio;
     @FXML public RadioButton tetraRadio;
     @FXML public RadioButton moveRadio;
+    @FXML public TextField columnField;
+    @FXML public TextField rowField;
+    @FXML public TextField spacingField;
 
     private PointDragState _pointDrag = PointDragState.None;
     private Point2D _prevMouse;
@@ -100,14 +108,8 @@ public class MainController implements Initializable {
         int tetSize = app.currentTetragon.points.size();
 
         if (tetSize > 2) {
-            double[] xPoints = new double[tetSize];
-            double[] yPoints = new double[tetSize];
-
-            for (int i = 0; i < tetSize; i++) {
-                Point2D p = app.currentTetragon.points.get(i);
-                xPoints[i] = p.getX();
-                yPoints[i] = p.getY();
-            }
+            double[] xPoints = app.currentTetragon.xPoints();
+            double[] yPoints = app.currentTetragon.yPoints();
 
             gc.setFill(Color.rgb(100, 100, 255, .1));
             gc.setStroke(Color.BLUE);
@@ -117,7 +119,128 @@ public class MainController implements Initializable {
         }
 
         for (Point2D p : app.currentTetragon.points) {
-            _drawPoint(gc, p);
+//            _drawPoint(gc, p);
+        }
+
+        if (tetSize != 4) return;
+
+        int columns, rows;
+        double spacing;
+        try {
+            columns = Integer.parseInt(columnField.getText());
+            rows = Integer.parseInt(rowField.getText());
+            spacing = Double.parseDouble(spacingField.getText());
+        } catch (NumberFormatException ex) {
+            return;
+        }
+
+        if (spacing < 0) {
+            spacing = 0;
+        }
+
+        if (columns < 2 || rows < 2) {
+            return;
+        }
+
+        Line[] lines = app.currentTetragon.getEdges();
+        Point2D[] lineDistance = new Point2D[tetSize];
+        Point2D[] cellDistance = new Point2D[tetSize];
+
+        Point2D topLeft, topRight, bottomLeft;
+        topLeft = new Point2D(lines[0].getStartX(), lines[0].getStartY());
+        topRight = new Point2D(lines[0].getEndX(), lines[0].getEndY());
+        bottomLeft = new Point2D(lines[2].getStartX(), lines[2].getStartY());
+
+//        _drawPoint(gc, topLeft);
+//        _drawPoint(gc, bottomLeft);
+
+        gc.setLineWidth(1);
+        gc.setStroke(Color.rgb(120, 120, 255, .8));
+
+//        _drawMesh(gc, lines[0], lines[2], rows, topLeft, topRight);
+//        _drawMesh(gc, lines[3], lines[1], columns, topLeft, bottomLeft);
+
+        Line startVer = lines[0], endVer = lines[2];
+        Point2D startPointVer = topLeft, endPointVer = topRight;
+        Line startHor = lines[3], endHor = lines[1];
+        Point2D startPointHor = topLeft, endPointHor = bottomLeft;
+
+        double xDistStartVer = ( startVer.getStartX() - endVer.getStartX() ) / columns;
+        double yDistStartVer = ( startVer.getStartY() - endVer.getStartY() ) / columns;
+        double xDistEndVer = ( startVer.getEndX() - endVer.getEndX() ) / columns;
+        double yDistEndVer = ( startVer.getEndY() - endVer.getEndY() ) / columns;
+
+        double xDistStartHor = ( startHor.getStartX() - endHor.getStartX() ) / rows;
+        double yDistStartHor = ( startHor.getStartY() - endHor.getStartY() ) / rows;
+        double xDistEndHor = ( startHor.getEndX() - endHor.getEndX() ) / rows;
+        double yDistEndHor = ( startHor.getEndY() - endHor.getEndY() ) / rows;
+
+        Tetragon[][] cells = new Tetragon[columns][rows];
+        for (int x = 0; x < columns; x++) {
+            for (int y = 0; y < rows; y++) {
+                cells[x][y] = new Tetragon();
+            }
+        }
+
+        for (int x = -1; x < columns; x++) {
+            for (int y = -1; y < rows; y++) {
+                Line verticalLine = new Line(startPointHor.getX() - (x + 1) * xDistStartHor,
+                        startPointHor.getY() - (x + 1) * yDistStartHor,
+                        endPointHor.getX() - (x + 1) * xDistEndHor,
+                        endPointHor.getY() - (x + 1) * yDistEndHor);
+
+                Line horizontalLine = new Line(startPointVer.getX() - (y + 1) * xDistStartVer,
+                        startPointVer.getY() - (y + 1) * yDistStartVer,
+                        endPointVer.getX() - (y + 1) * xDistEndVer,
+                        endPointVer.getY() - (y + 1) * yDistEndVer);
+
+                Path s = (Path) Line.intersect(verticalLine, horizontalLine);
+                MoveTo m = ((MoveTo) s.getElements().get(0));
+
+                for (int i = 0; i <= 1; i++) {
+                    for (int j = 0; j <= 1; j++) {
+                        if (x + i >= 0 && y + j >= 0 && x + i < columns && y + j < columns) {
+                            cells[x + i][y + j].points.add(new Point2D(m.getX(), m.getY()));
+                        }
+                    }
+                }
+            }
+        }
+
+
+        for (int x = 0; x < columns; x++) {
+            for (int y = 0; y < rows; y++) {
+                Tetragon t = cells[x][y];
+                ArrayList<Point2D> points = t.points;
+                Point2D p = points.get(1);
+                points.remove(p);
+                points.add(0, p);
+
+                t.getBox();
+
+                gc.setFill(Color.RED);
+//                gc.fillPolygon(t.xPoints(), t.yPoints(), points.size());
+//                System.out.println(cells[x][y].points.size());
+            }
+        }
+    }
+
+    private void _drawMesh(GraphicsContext gc, Line start, Line end, int count, Point2D startPoint, Point2D endPoint) {
+        double xDistStart = ( start.getStartX() - end.getStartX() ) / count;
+        double yDistStart = ( start.getStartY() - end.getStartY() ) / count;
+        double xDistEnd = ( start.getEndX() - end.getEndX() ) / count;
+        double yDistEnd = ( start.getEndY() - end.getEndY() ) / count;
+
+        gc.setLineWidth(1);
+        gc.setStroke(Color.RED);
+
+        for (int i = 0; i < count - 1; i++) {
+            gc.strokeLine(
+                    startPoint.getX() - (i + 1) * xDistStart,
+                    startPoint.getY() - (i + 1) * yDistStart,
+                    endPoint.getX() - (i + 1) * xDistEnd,
+                    endPoint.getY() - (i + 1) * yDistEnd
+            );
         }
     }
 
