@@ -34,4 +34,11 @@ public class BoxLabel {
                 new Point2D(this.x + this.w, this.y + this.h)
         };
     }
+
+    public void copyBoundsFrom(BoxLabel l) {
+        this.x = l.x;
+        this.y = l.y;
+        this.w = l.w;
+        this.h = l.h;
+    }
 }

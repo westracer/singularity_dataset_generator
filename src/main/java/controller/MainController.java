@@ -11,6 +11,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -36,6 +37,7 @@ enum PointDragState {
 
 public class MainController implements Initializable {
     private final double POINT_SIZE = 8.;
+    private final double CLICK_POINT_SIZE = POINT_SIZE + 5;
 
     private App app = new App();
     public Stage window;
@@ -131,23 +133,24 @@ public class MainController implements Initializable {
     }
 
     public void onMouseDown(MouseEvent event) {
-        switch (_state) {
-            case Select:
-            case Box:
-                _draggableLabel = new BoxLabel(0, event.getX(), event.getY(), 0, 0);
-                _selectedLabels.clear();
-                break;
-            case Move:
-                _prevMouse = new Point2D(event.getX(), event.getY());
+        _prevMouse = new Point2D(event.getX(), event.getY());
+        MouseButton mb = event.getButton();
 
-                if (_selectedLabels.size() == 0) {
+        if (mb == MouseButton.PRIMARY) {
+            switch (_state) {
+                case Select:
+                case Box:
+                    _draggableLabel = new BoxLabel(0, event.getX(), event.getY(), 0, 0);
+                    _selectedLabels.clear();
+                    break;
+                case Move:
                     for (BoxLabel l : app.boxLabels) {
 
                         Point2D clickedPoint = null;
                         Point2D[] points = l.getPoints();
                         for (Point2D p : points) {
-                            if (Math.abs(p.getX() - POINT_SIZE / 2 - event.getX()) < POINT_SIZE
-                                    && Math.abs(p.getY() - POINT_SIZE / 2 - event.getY()) < POINT_SIZE) {
+                            if (Math.abs(p.getX() - CLICK_POINT_SIZE / 2 - event.getX()) < CLICK_POINT_SIZE
+                                    && Math.abs(p.getY() - CLICK_POINT_SIZE / 2 - event.getY()) < CLICK_POINT_SIZE) {
                                 clickedPoint = p;
                                 break;
                             }
@@ -173,139 +176,143 @@ public class MainController implements Initializable {
                             }
                         }
                     }
-                }
-                break;
-            case Tetragon:
-                _selectedLabels.clear();
-                break;
+                    break;
+                case Tetragon:
+                    _selectedLabels.clear();
+                    break;
+            }
         }
 
         repaintCanvas();
     }
 
     public void onDrag(MouseEvent event) {
-        switch (_state) {
-            case Select:
-            case Box:
-                if (_draggableLabel == null) return;
+        MouseButton mb = event.getButton();
+        double deltaX = event.getX() - _prevMouse.getX();
+        double deltaY = event.getY() - _prevMouse.getY();
 
-                _draggableLabel.w = event.getX() - _draggableLabel.x;
-                _draggableLabel.h = event.getY() - _draggableLabel.y;
-                break;
-            case Move:
-                double deltaX = event.getX() - _prevMouse.getX();
-                double deltaY = event.getY() - _prevMouse.getY();
+        if (mb == MouseButton.PRIMARY) {
+            switch (_state) {
+                case Select:
+                case Box:
+                    if (_draggableLabel == null) return;
 
-                if (_selectedLabels.size() > 0) {
-                    for (BoxLabel l : _selectedLabels) {
-                        l.x += deltaX;
-                        l.y += deltaY;
+                    _draggableLabel.w = event.getX() - _draggableLabel.x;
+                    _draggableLabel.h = event.getY() - _draggableLabel.y;
+                    break;
+                case Move:
+
+                    if (_selectedLabels.size() > 0 && _pointDrag == PointDragState.None) {
+                        for (BoxLabel l : _selectedLabels) {
+                            l.x += deltaX;
+                            l.y += deltaY;
+                        }
+                    } else if (_draggableLabel != null && _pointDrag != PointDragState.None) {
+                        switch (_pointDrag) {
+                            case TopLeft:
+                                _draggableLabel.x += deltaX;
+                                _draggableLabel.y += deltaY;
+
+                                _draggableLabel.w -= deltaX;
+                                _draggableLabel.h -= deltaY;
+                                break;
+                            case BottomLeft:
+                                _draggableLabel.x += deltaX;
+                                _draggableLabel.h += deltaY;
+
+                                _draggableLabel.w -= deltaX;
+                                break;
+                            case TopRight:
+                                _draggableLabel.y += deltaY;
+                                _draggableLabel.w += deltaX;
+
+                                _draggableLabel.h -= deltaY;
+                                break;
+                            case BottomRight:
+                                _draggableLabel.w += deltaX;
+                                _draggableLabel.h += deltaY;
+                                break;
+                            default:
+                        }
                     }
-                } else if (_draggableLabel != null && _pointDrag != PointDragState.None) {
-                    switch (_pointDrag) {
-                        case TopLeft:
-                            _draggableLabel.x += deltaX;
-                            _draggableLabel.y += deltaY;
-
-                            _draggableLabel.w -= deltaX;
-                            _draggableLabel.h -= deltaY;
-                            break;
-                        case BottomLeft:
-                            _draggableLabel.x += deltaX;
-                            _draggableLabel.h += deltaY;
-
-                            _draggableLabel.w -= deltaX;
-                            break;
-                        case TopRight:
-                            _draggableLabel.y += deltaY;
-                            _draggableLabel.w += deltaX;
-
-                            _draggableLabel.h -= deltaY;
-                            break;
-                        case BottomRight:
-                            _draggableLabel.w += deltaX;
-                            _draggableLabel.h += deltaY;
-                            break;
-                        default:
-                    }
-                }
-
-                _prevMouse = new Point2D(event.getX(), event.getY());
-                break;
-            case Tetragon:
-                break;
+                    break;
+                case Tetragon:
+                    break;
+            }
         }
 
+        _prevMouse = new Point2D(event.getX(), event.getY());
         repaintCanvas();
     }
 
-    public void onMouseUp() {
-        switch (_state) {
-            case Select:
-                if (_draggableLabel != null) {
-                    _selectedLabels.clear();
+    public void onMouseUp(MouseEvent event) {
+        MouseButton mb = event.getButton();
 
-                    BoxLabel d = _draggableLabel.fixNegativeSize();
-                    Rectangle2D rect = new Rectangle2D(d.x, d.y, d.w, d.h);
-                    for (BoxLabel l : app.boxLabels) {
-                        boolean contains = false;
+        if (mb == MouseButton.PRIMARY) {
+            switch (_state) {
+                case Select:
+                    if (_draggableLabel != null) {
+                        _selectedLabels.clear();
 
-                        for (Point2D p : l.getPoints()) {
-                            if (rect.contains(p)) {
-                                contains = true;
-                                break;
+                        BoxLabel d = _draggableLabel.fixNegativeSize();
+                        Rectangle2D rect = new Rectangle2D(d.x, d.y, d.w, d.h);
+                        for (BoxLabel l : app.boxLabels) {
+                            boolean contains = false;
+
+                            for (Point2D p : l.getPoints()) {
+                                if (rect.contains(p)) {
+                                    contains = true;
+                                    break;
+                                }
+                            }
+
+                            if (contains) {
+                                _selectedLabels.add(l);
                             }
                         }
+                    }
 
-                        if (contains) {
-                            _selectedLabels.add(l);
+                    break;
+                case Box:
+                    if (_draggableLabel != null) {
+                        _draggableLabel = _draggableLabel.fixNegativeSize();
+
+                        double xEnd = _draggableLabel.x + _draggableLabel.w;
+                        double yEnd = _draggableLabel.y + _draggableLabel.h;
+                        double cw = canvas.getWidth();
+                        double ch = canvas.getHeight();
+
+                        if (_draggableLabel.x > 0
+                                && _draggableLabel.x < cw
+                                && _draggableLabel.y > 0
+                                && _draggableLabel.y < ch
+                                && xEnd > 0
+                                && xEnd < cw
+                                && yEnd > 0
+                                && yEnd < ch
+                        ) {
+                            app.boxLabels.add(_draggableLabel);
+                            _selectedLabels.add(_draggableLabel);
                         }
+
                     }
-                }
-
-                break;
-            case Box:
-                if (_draggableLabel != null) {
-                    _draggableLabel = _draggableLabel.fixNegativeSize();
-
-                    double xEnd = _draggableLabel.x + _draggableLabel.w;
-                    double yEnd = _draggableLabel.y + _draggableLabel.h;
-                    double cw = canvas.getWidth();
-                    double ch = canvas.getHeight();
-
-                    if (_draggableLabel.x > 0
-                            && _draggableLabel.x < cw
-                            && _draggableLabel.y > 0
-                            && _draggableLabel.y < ch
-                            && xEnd > 0
-                            && xEnd < cw
-                            && yEnd > 0
-                            && yEnd < ch
-                    ) {
-                        app.boxLabels.add(_draggableLabel);
-                        _selectedLabels.add(_draggableLabel);
+                    break;
+                case Move:
+                    if (_pointDrag != null && _pointDrag != PointDragState.None) {
+                        BoxLabel fixed = _draggableLabel.fixNegativeSize();
+                        _draggableLabel.copyBoundsFrom(fixed);
                     }
 
-                }
-                break;
-            case Move:
-                if (_pointDrag != null && _pointDrag != PointDragState.None) {
-                    BoxLabel fixed = _draggableLabel.fixNegativeSize();
+                    _pointDrag = PointDragState.None;
+                    break;
+                case Tetragon:
+                    break;
+            }
 
-                    _draggableLabel.x = fixed.x;
-                    _draggableLabel.y = fixed.y;
-                    _draggableLabel.w = fixed.w;
-                    _draggableLabel.h = fixed.h;
-                }
-
-                _pointDrag = PointDragState.None;
-                _prevMouse = null;
-                break;
-            case Tetragon:
-                break;
+            _draggableLabel = null;
         }
 
-        _draggableLabel = null;
+        _prevMouse = null;
         repaintCanvas();
     }
 
