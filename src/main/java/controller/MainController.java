@@ -96,6 +96,31 @@ public class MainController implements Initializable {
         }
     }
 
+    private void _drawTetragon(GraphicsContext gc) {
+        int tetSize = app.currentTetragon.points.size();
+
+        if (tetSize > 2) {
+            double[] xPoints = new double[tetSize];
+            double[] yPoints = new double[tetSize];
+
+            for (int i = 0; i < tetSize; i++) {
+                Point2D p = app.currentTetragon.points.get(i);
+                xPoints[i] = p.getX();
+                yPoints[i] = p.getY();
+            }
+
+            gc.setFill(Color.rgb(100, 100, 255, .1));
+            gc.setStroke(Color.BLUE);
+            gc.setLineWidth(1);
+            gc.fillPolygon(xPoints, yPoints, tetSize);
+            gc.strokePolygon(xPoints, yPoints, tetSize);
+        }
+
+        for (Point2D p : app.currentTetragon.points) {
+            _drawPoint(gc, p);
+        }
+    }
+
     private void repaintImageCanvas() {
         GraphicsContext gc = imageCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, imageCanvas.getWidth(), imageCanvas.getHeight());
@@ -120,6 +145,8 @@ public class MainController implements Initializable {
         if (_draggableLabel != null) {
             _drawBoxLabel(gc, _draggableLabel);
         }
+
+        _drawTetragon(gc);
     }
 
     public void openDirectory() {
@@ -179,6 +206,13 @@ public class MainController implements Initializable {
                     break;
                 case Tetragon:
                     _selectedLabels.clear();
+
+                    if (app.currentTetragon.points.size() == 4) {
+                        app.currentTetragon.points.clear();
+                    }
+
+                    app.currentTetragon.points.add(new Point2D(event.getX(), event.getY()));
+
                     break;
             }
         }
@@ -334,6 +368,11 @@ public class MainController implements Initializable {
         switch (ev.getCode()) {
             case ESCAPE:
                 _selectedLabels.clear();
+                repaintCanvas();
+                break;
+            case DELETE:
+            case BACK_SPACE:
+                app.boxLabels.removeAll(_selectedLabels);
                 repaintCanvas();
                 break;
             default:
