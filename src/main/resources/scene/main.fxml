@@ -14,7 +14,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="vbox" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.MainController">
+<VBox fx:id="vbox" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" onKeyPressed="#onKeyPressed" prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.MainController">
    <children>
       <MenuBar>
         <menus>
@@ -59,13 +59,14 @@
       </GridPane>
       <AnchorPane prefHeight="100.0">
          <children>
-            <RadioButton fx:id="boxRadio" layoutX="86.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" selected="true" text="Box">
+            <RadioButton fx:id="boxRadio" layoutX="156.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" selected="true" text="Box">
                <toggleGroup>
                   <ToggleGroup fx:id="mode" />
                </toggleGroup>
             </RadioButton>
-            <RadioButton fx:id="tetraRadio" layoutX="143.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" text="Tetragon" toggleGroup="$mode" />
+            <RadioButton fx:id="tetraRadio" layoutX="213.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" text="Tetragon" toggleGroup="$mode" />
             <RadioButton fx:id="selectRadio" layoutX="14.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" text="Select" toggleGroup="$mode" />
+            <RadioButton fx:id="moveRadio" layoutX="88.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" text="Move" toggleGroup="$mode" />
          </children>
       </AnchorPane>
    </children>
