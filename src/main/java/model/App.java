@@ -22,6 +22,8 @@ public class App {
     private File _currentFile;
 
     public Image currentImage;
+    public ArrayList<BoxLabel> boxLabels = new ArrayList<>();
+    public Tetragon currentTetragon = new Tetragon();
 
     public void openDirectory(File dir) {
         this._openedDirectory = dir;

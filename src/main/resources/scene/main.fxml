@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.canvas.*?>
-<?import javafx.scene.control.*?>
-<?import java.lang.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<VBox fx:id="vbox" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.MainController">
+<VBox fx:id="vbox" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controller.MainController">
    <children>
       <MenuBar>
         <menus>
@@ -42,10 +47,26 @@
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0" />
             <ScrollPane fx:id="canvasScroll" fitToHeight="true" fitToWidth="true" prefViewportHeight="200.0" prefViewportWidth="200.0" GridPane.columnIndex="1">
                <content>
-                  <Canvas fx:id="canvas" height="200.0" width="200.0" />
+                  <StackPane alignment="TOP_LEFT">
+                     <children>
+                        <Canvas fx:id="imageCanvas" height="200.0" onMouseDragged="#onDrag" onMousePressed="#onMouseDown" onMouseReleased="#onMouseUp" width="200.0" />
+                        <Canvas fx:id="canvas" height="200.0" onMouseDragged="#onDrag" onMousePressed="#onMouseDown" onMouseReleased="#onMouseUp" width="200.0" />
+                     </children>
+                  </StackPane>
                </content>
             </ScrollPane>
          </children>
       </GridPane>
+      <AnchorPane prefHeight="100.0">
+         <children>
+            <RadioButton fx:id="boxRadio" layoutX="86.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" selected="true" text="Box">
+               <toggleGroup>
+                  <ToggleGroup fx:id="mode" />
+               </toggleGroup>
+            </RadioButton>
+            <RadioButton fx:id="tetraRadio" layoutX="143.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" text="Tetragon" toggleGroup="$mode" />
+            <RadioButton fx:id="selectRadio" layoutX="14.0" layoutY="14.0" mnemonicParsing="false" onAction="#onStateChange" text="Select" toggleGroup="$mode" />
+         </children>
+      </AnchorPane>
    </children>
 </VBox>
