@@ -62,6 +62,7 @@ public class MainController implements Initializable {
     @FXML public Button saveButton;
     @FXML public Button classButton;
 
+    private boolean _saved = true;
     private PointDragState _pointDrag = PointDragState.None;
     private Point2D _prevMouse;
     private MainState _state = MainState.Box;
@@ -286,6 +287,9 @@ public class MainController implements Initializable {
         File dir = dc.showDialog(this.window);
         if (dir == null) return;
 
+        if (!_saved) if (!askSave()) return;
+
+        _saved = true;
         this.app.openDirectory(dir);
         repaintImageCanvas();
         repaintCanvas();
@@ -411,6 +415,8 @@ public class MainController implements Initializable {
                 case Tetragon:
                     break;
             }
+
+            _saved = false;
         }
 
         _prevMouse = new Point2D(event.getX(), event.getY());
@@ -480,7 +486,7 @@ public class MainController implements Initializable {
                 case Tetragon:
                     break;
             }
-
+            _saved = false;
             _draggableLabel = null;
         }
 
@@ -510,6 +516,7 @@ public class MainController implements Initializable {
                 break;
             case DELETE:
             case BACK_SPACE:
+                _saved = false;
                 app.boxLabels.removeAll(_selectedLabels);
                 repaintCanvas();
                 break;
@@ -519,9 +526,11 @@ public class MainController implements Initializable {
 
     public void onSaveButtonPress() {
         app.saveCurrentLabels();
+        _saved = true;
     }
 
     public void applyClass() {
+        _saved = false;
         try {
             int classNumber = Integer.parseInt(classField.getText());
 
@@ -534,14 +543,51 @@ public class MainController implements Initializable {
     }
 
     public void nextImage() {
+        if (!_saved) if (!askSave()) return;
+
+        _saved = true;
         app.chooseImage(1);
         repaintImageCanvas();
         repaintCanvas();
     }
 
+    private boolean askSave() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Save?", ButtonType.YES, ButtonType.NO, ButtonType.CANCEL);
+        alert.showAndWait();
+
+        if (alert.getResult() == ButtonType.YES) {
+            app.saveCurrentLabels();
+            return true;
+        } else if (alert.getResult() == ButtonType.NO) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public void prevImage() {
+        if (!_saved) if (!askSave()) return;
+
+        _saved = true;
         app.chooseImage(-1);
         repaintImageCanvas();
+        repaintCanvas();
+    }
+
+    public void duplicate() {
+        _saved = false;
+        ArrayList<BoxLabel> newLabels = new ArrayList<>();
+
+        for (BoxLabel l : _selectedLabels) {
+            BoxLabel nl = l.copy();
+            nl.x += 10;
+            nl.y += 10;
+
+            app.boxLabels.add(nl);
+            newLabels.add(nl);
+        }
+
+        _selectedLabels = newLabels;
         repaintCanvas();
     }
 }

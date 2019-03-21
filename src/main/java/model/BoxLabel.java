@@ -26,6 +26,10 @@ public class BoxLabel {
         return new BoxLabel(classNumber, startX, startY, w, h);
     }
 
+    public BoxLabel copy() {
+        return new BoxLabel(classNumber, x, y, w, h);
+    }
+
     public Point2D[] getPoints() {
         return new Point2D[] {
                 new Point2D(this.x, this.y),
