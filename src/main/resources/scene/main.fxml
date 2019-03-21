@@ -52,6 +52,7 @@
                   <Button fx:id="saveButton" layoutX="12.0" layoutY="14.0" mnemonicParsing="false" onAction="#onSaveButtonPress" prefHeight="27.0" prefWidth="109.0" text="Save" />
                   <Button layoutX="12.0" layoutY="52.0" mnemonicParsing="false" onAction="#prevImage" prefHeight="27.0" prefWidth="109.0" text="Previous" />
                   <Button layoutX="12.0" layoutY="90.0" mnemonicParsing="false" onAction="#nextImage" prefHeight="27.0" prefWidth="109.0" text="Next" />
+                  <Button layoutX="12.0" layoutY="144.0" mnemonicParsing="false" onAction="#process" prefHeight="27.0" prefWidth="109.0" text="Process" />
                </children></AnchorPane>
             <ScrollPane fx:id="canvasScroll" fitToHeight="true" fitToWidth="true" prefViewportHeight="200.0" prefViewportWidth="200.0" GridPane.columnIndex="1">
                <content>

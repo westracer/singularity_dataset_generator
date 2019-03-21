@@ -4,11 +4,11 @@ import helper.FileHelper;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 public class App {
     public App() {}
@@ -97,24 +97,8 @@ public class App {
                 String[] split = line.split(" ");
                 if (split.length != 5) continue;
 
-                int classNumber;
-                double xRelCenter, yRelCenter, wRel, hRel;
-
                 try {
-                    classNumber = Integer.parseInt(split[0]);
-                    xRelCenter = Double.parseDouble(split[1]);
-                    yRelCenter = Double.parseDouble(split[2]);
-                    wRel = Double.parseDouble(split[3]);
-                    hRel = Double.parseDouble(split[4]);
-
-                    BoxLabel l = new BoxLabel(
-                            classNumber,
-                            xRelCenter * w -  wRel * w / 2,
-                            yRelCenter * h -  hRel * h / 2,
-                            wRel * w,
-                            hRel * h
-                    );
-
+                    BoxLabel l = FileHelper.readLabel(split, w, h);
                     boxLabels.add(l);
                 } catch (NumberFormatException ignored) {}
             }
@@ -126,8 +110,6 @@ public class App {
     public void saveCurrentLabels() {
         if (_currentFile == null) return;
 
-        final double DOUBLE_ROUND = 10000.;
-
         String fileName = FileHelper.getNameWithoutExtension(_currentFile.getAbsolutePath()) + "." + TEXT_EXTENSION;
 
         File text = new File(fileName);
@@ -138,26 +120,63 @@ public class App {
             double h = currentImage.getHeight();
 
             for (BoxLabel l : boxLabels) {
-                double relW = Math.round(l.w / w * DOUBLE_ROUND) / DOUBLE_ROUND;
-                double relH = Math.round(l.h / h * DOUBLE_ROUND) / DOUBLE_ROUND;
-                double xCenter = Math.round((l.x / w + relW / 2) * DOUBLE_ROUND) / DOUBLE_ROUND;
-                double yCenter = Math.round((l.y / h + relH / 2) * DOUBLE_ROUND) / DOUBLE_ROUND;
-
-                String labelText = String.join(
-                        " ",
-                        Integer.toString(l.classNumber),
-                        Double.toString(xCenter),
-                        Double.toString(yCenter),
-                        Double.toString(relW),
-                        Double.toString(relH)
-                );
-
-                fw.write(labelText + '\n');
+                FileHelper.writeLabel(fw, l, w, h);
             }
 
             fw.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void processImages() {
+        File prevFile = _currentFile;
+
+        String pPath = _openedDirectory + "/process";
+
+        File dir = new File(pPath);
+        dir.delete();
+        dir = new File(pPath);
+        dir.mkdir();
+
+        int i = 0;
+
+        for (File f : _pics) {
+            setCurrentImage(f);
+
+            BufferedImage img;
+            try {
+                img = ImageIO.read(f);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            for (BoxLabel l : boxLabels) {
+                try {
+                    // write cropped label
+                    BufferedImage bi = img.getSubimage((int) l.x, (int) l.y, (int) l.w, (int) l.h);
+                    File output = new File(pPath + "/" + i + ".jpg");
+                    File outputText = new File(pPath + "/" + i + "." + TEXT_EXTENSION);
+                    ImageIO.write(bi, "jpg", output);
+
+                    FileWriter fw = new FileWriter(outputText, false);
+                    BoxLabel nl = l.copy();
+                    nl.x = 0;
+                    nl.y = 0;
+
+                    fw.write(l.classNumber + " 0.5 0.5 1 1");
+                    fw.close();
+
+                    i++;
+
+                    // TODO: pre-processing
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        setCurrentImage(prevFile);
     }
 }

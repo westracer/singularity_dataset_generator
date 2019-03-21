@@ -70,7 +70,9 @@ public class MainController implements Initializable {
     private ArrayList<BoxLabel> _selectedLabels = new ArrayList<>();
 
     @Override
-    public void initialize(URL location, ResourceBundle resources) {}
+    public void initialize(URL location, ResourceBundle resources) {
+        openDirectoryByPath("/Users/test/Documents/pics");
+    }
 
     private void _drawPoint(GraphicsContext gc, Point2D point) {
 
@@ -285,6 +287,14 @@ public class MainController implements Initializable {
         DirectoryChooser dc = new DirectoryChooser();
 
         File dir = dc.showDialog(this.window);
+        _openDirectory(dir);
+    }
+
+    public void openDirectoryByPath(String dirPath) {
+        _openDirectory(new File(dirPath));
+    }
+
+    private void _openDirectory(File dir) {
         if (dir == null) return;
 
         if (!_saved) if (!askSave()) return;
@@ -589,5 +599,9 @@ public class MainController implements Initializable {
 
         _selectedLabels = newLabels;
         repaintCanvas();
+    }
+
+    public void process() {
+        app.processImages();
     }
 }
