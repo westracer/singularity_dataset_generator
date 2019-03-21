@@ -1,16 +1,20 @@
 package helper;
 
-import java.io.File;
-
 public class FileHelper {
-    public static String getFileNameWithoutExtension(File f) {
-        String fName = f.getName();
-        String[] dotSplit = fName.split("\\.");
+    public static String getNameWithoutExtension(String str) {
+        String[] dotSplit = str.split("\\.");
 
         if (dotSplit.length > 1) {
-            return dotSplit[dotSplit.length - 1].toLowerCase();
+            dotSplit[dotSplit.length - 1] = "";
+
+            StringBuilder newStr = new StringBuilder();
+            for (String part : dotSplit) {
+                newStr.append(part);
+            }
+
+            return newStr.toString();
         } else {
-            return "";
+            return str;
         }
     }
 }

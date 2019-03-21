@@ -7,10 +7,7 @@ import javafx.geometry.Point2D;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.RadioButton;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -20,6 +17,8 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.scene.shape.Shape;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
@@ -59,6 +58,9 @@ public class MainController implements Initializable {
     @FXML public TextField columnField;
     @FXML public TextField rowField;
     @FXML public TextField spacingField;
+    @FXML public TextField classField;
+    @FXML public Button saveButton;
+    @FXML public Button classButton;
 
     private PointDragState _pointDrag = PointDragState.None;
     private Point2D _prevMouse;
@@ -96,6 +98,12 @@ public class MainController implements Initializable {
         label = label.fixNegativeSize();
 
         gc.strokeRect(label.x, label.y, label.w, label.h);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font(11));
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText(Integer.toString(label.classNumber), label.x + 10, label.y + 20);
+        gc.strokeText(Integer.toString(label.classNumber), label.x + 10, label.y + 20);
 
         if (_state != MainState.Select || !isDraggable) {
             for (Point2D p : label.getPoints()) {
@@ -280,6 +288,7 @@ public class MainController implements Initializable {
 
         this.app.openDirectory(dir);
         repaintImageCanvas();
+        repaintCanvas();
     }
 
     public void onMouseDown(MouseEvent event) {
@@ -290,7 +299,13 @@ public class MainController implements Initializable {
             switch (_state) {
                 case Select:
                 case Box:
-                    _draggableLabel = new BoxLabel(0, event.getX(), event.getY(), 0, 0);
+                    int classNumber = 0;
+
+                    try {
+                        classNumber = Integer.parseInt(classField.getText());
+                    } catch (NumberFormatException ignored) {}
+
+                    _draggableLabel = new BoxLabel(classNumber, event.getX(), event.getY(), 0, 0);
                     _selectedLabels.clear();
                     break;
                 case Move:
@@ -500,5 +515,33 @@ public class MainController implements Initializable {
                 break;
             default:
         }
+    }
+
+    public void onSaveButtonPress() {
+        app.saveCurrentLabels();
+    }
+
+    public void applyClass() {
+        try {
+            int classNumber = Integer.parseInt(classField.getText());
+
+            for (BoxLabel l : _selectedLabels) {
+                l.classNumber = classNumber;
+            }
+
+            repaintCanvas();
+        } catch (NumberFormatException ignored) {}
+    }
+
+    public void nextImage() {
+        app.chooseImage(1);
+        repaintImageCanvas();
+        repaintCanvas();
+    }
+
+    public void prevImage() {
+        app.chooseImage(-1);
+        repaintImageCanvas();
+        repaintCanvas();
     }
 }
