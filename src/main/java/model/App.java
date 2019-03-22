@@ -22,7 +22,7 @@ public class App {
     public final static String TEXT_EXTENSION = "txt";
     public final static String PROCESS_FOLDER_NAME = "process";
 
-    private final float NUMBER_OF_RANDOM_IMAGES = 5;
+    private final float NUMBER_OF_RANDOM_IMAGES = 7;
 
     private final int[] scaleSizes = new int[]{20, 100, 200, 400};
     private final float[] noiseStrengths = new float[] {0f, .25f, .5f, 1f};

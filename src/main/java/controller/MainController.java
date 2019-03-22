@@ -68,9 +68,7 @@ public class MainController implements Initializable {
     private ArrayList<BoxLabel> _selectedLabels = new ArrayList<>();
 
     @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        openDirectoryByPath("/Users/test/Documents/pics");
-    }
+    public void initialize(URL location, ResourceBundle resources) {}
 
     private void _drawPoint(GraphicsContext gc, Point2D point) {
 
