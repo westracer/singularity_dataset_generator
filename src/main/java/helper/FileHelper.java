@@ -97,7 +97,7 @@ public class FileHelper {
 
         at.rotate(rads, x, y);
         g2d.setColor(Color.LIGHT_GRAY);
-        g2d.fillRect(0, 0, newWidth - 1, newHeight - 1);
+        g2d.fillRect(0, 0, newWidth + 10, newHeight + 10);
 
         g2d.setTransform(at);
         g2d.drawImage(img, 0, 0, null);
