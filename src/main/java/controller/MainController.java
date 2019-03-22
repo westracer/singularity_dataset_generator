@@ -16,13 +16,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
-import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
-import javafx.util.Pair;
 import model.App;
 import model.BoxLabel;
 import model.Tetragon;
@@ -290,7 +288,7 @@ public class MainController implements Initializable {
         _openDirectory(dir);
     }
 
-    public void openDirectoryByPath(String dirPath) {
+    private void openDirectoryByPath(String dirPath) {
         _openDirectory(new File(dirPath));
     }
 

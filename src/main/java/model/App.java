@@ -1,20 +1,33 @@
 package model;
 
+import helper.FastNoise;
 import helper.FileHelper;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
+import org.imgscalr.Scalr;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.RescaleOp;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 public class App {
     public App() {}
 
-    final static String[] IMAGE_EXTENSIONS = new String[] {"jpg", "jpeg", "png"};
-    final static String TEXT_EXTENSION = "txt";
+    private final static String[] IMAGE_EXTENSIONS = new String[] {"jpg", "jpeg", "png"};
+    public final static String TEXT_EXTENSION = "txt";
+    public final static String PROCESS_FOLDER_NAME = "process";
+
+    private final float NUMBER_OF_RANDOM_IMAGES = 5;
+
+    private final int[] scaleSizes = new int[]{20, 100, 200, 400};
+    private final float[] noiseStrengths = new float[] {0f, .25f, .5f, 1f};
+    private final float[] brightnesses = new float[]{.4f, .5f, .75f, 1f, 1.5f, 1.75f};
+    private final double[] rotationAngles = new double[]{-10, 0, 10};
 
     private File _openedDirectory;
     private File[] _pics;
@@ -58,7 +71,7 @@ public class App {
         setCurrentImage(_pics[0]);
     }
 
-    public void setCurrentImage(File file) {
+    private void setCurrentImage(File file) {
         boxLabels.clear();
         _currentFile = file;
         currentImage = new Image(file.toURI().toString());
@@ -78,7 +91,7 @@ public class App {
         setCurrentImage(_pics[index]);
     }
 
-    public void loadLabels() {
+    private void loadLabels() {
         if (_currentFile == null) return;
 
         String fileName = FileHelper.getNameWithoutExtension(_currentFile.getAbsolutePath()) + "." + TEXT_EXTENSION;
@@ -132,7 +145,7 @@ public class App {
     public void processImages() {
         File prevFile = _currentFile;
 
-        String pPath = _openedDirectory + "/process";
+        String pPath = _openedDirectory + "/" + PROCESS_FOLDER_NAME;
 
         File dir = new File(pPath);
         dir.delete();
@@ -141,40 +154,78 @@ public class App {
 
         int i = 0;
 
-        for (File f : _pics) {
-            setCurrentImage(f);
+        try {
+            File labelsText = new File(_openedDirectory + "/labels" + "." + TEXT_EXTENSION);
+            FileWriter labelsFW = new FileWriter(labelsText, false);
 
-            BufferedImage img;
-            try {
-                img = ImageIO.read(f);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
+            for (File f : _pics) {
+                setCurrentImage(f);
 
-            for (BoxLabel l : boxLabels) {
+                BufferedImage img;
+
+                FastNoise noise = new FastNoise();
+                noise.SetFractalOctaves(5);
                 try {
-                    // write cropped label
-                    BufferedImage bi = img.getSubimage((int) l.x, (int) l.y, (int) l.w, (int) l.h);
-                    File output = new File(pPath + "/" + i + ".jpg");
-                    File outputText = new File(pPath + "/" + i + "." + TEXT_EXTENSION);
-                    ImageIO.write(bi, "jpg", output);
-
-                    FileWriter fw = new FileWriter(outputText, false);
-                    BoxLabel nl = l.copy();
-                    nl.x = 0;
-                    nl.y = 0;
-
-                    fw.write(l.classNumber + " 0.5 0.5 1 1");
-                    fw.close();
-
-                    i++;
-
-                    // TODO: pre-processing
+                    img = ImageIO.read(f);
                 } catch (IOException e) {
                     e.printStackTrace();
+                    return;
+                }
+
+                for (BoxLabel l : boxLabels) {
+                    // cropped label
+                    BufferedImage bi = img.getSubimage((int) l.x, (int) l.y, (int) l.w, (int) l.h);
+
+                    /* pre-processing */
+
+                    // scaling to different sizes
+                    for (int size : scaleSizes) {
+                        BufferedImage scaledImage = Scalr.resize(bi, size);
+                        FileHelper.writeCroppedLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
+
+                        Random random = new Random();
+                        for (int n = 0; n < NUMBER_OF_RANDOM_IMAGES; n++) {
+                            float noiseStr = noiseStrengths[random.nextInt(noiseStrengths.length)];
+                            float brightness = brightnesses[random.nextInt(brightnesses.length)];
+                            double angle = rotationAngles[random.nextInt(rotationAngles.length)];
+
+                            BufferedImage editedImage = scaledImage.getSubimage(0, 0, scaledImage.getWidth(), scaledImage.getHeight());
+
+                            // rotation
+                            editedImage = FileHelper.rotateImageByDegrees(editedImage, angle);
+
+                            // noise
+                            for (int x = 0; x < editedImage.getWidth(); x++) {
+                                for (int y = 0; y < editedImage.getHeight(); y++) {
+                                    Color pixel = new Color(editedImage.getRGB(x, y));
+                                    float noiseVal = noise.GetSimplexFractal(x, y) * noiseStr;
+
+                                    int r = (int) (pixel.getRed() + noiseVal * 255);
+                                    int g = (int) (pixel.getGreen() + noiseVal * 255);
+                                    int b = (int) (pixel.getBlue() + noiseVal * 255);
+
+                                    Color newPixel = new Color(
+                                            Math.max(0, Math.min(r, 255)),
+                                            Math.max(0, Math.min(g, 255)),
+                                            Math.max(0, Math.min(b, 255))
+                                    );
+
+                                    editedImage.setRGB(x, y, newPixel.getRGB());
+                                }
+                            }
+
+                            // brightness
+                            editedImage = Scalr.apply(editedImage, new RescaleOp(brightness, 0, null));
+
+                            FileHelper.writeCroppedLabel(pPath, i++, editedImage, l.classNumber, labelsFW);
+                        }
+                    }
                 }
             }
+
+            labelsFW.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         setCurrentImage(prevFile);
