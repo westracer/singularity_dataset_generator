@@ -2,6 +2,7 @@ package helper;
 
 import model.BoxLabel;
 import model.App;
+import org.imgscalr.Scalr;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -10,6 +11,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class FileHelper {
     private static final double DOUBLE_ROUND = 10000.;
@@ -68,13 +70,30 @@ public class FileHelper {
         );
     }
 
-    public static void writeCroppedLabel(String dirPath, int i, BufferedImage img, int classNumber, FileWriter labelsFW) throws IOException {
+    public static void writeCroppedLabel(String dirPath, int i, BufferedImage img, ArrayList<BoxLabel> boxLabels, FileWriter labelsFW) throws IOException {
         String fileName = i + ".jpg";
         File output = new File(dirPath + "/" + fileName);
-        ImageIO.write(img, "jpg", output);
+
+        ImageIO.write(Scalr.resize(img, 1088), "jpg", output);
         File outputText = new File(dirPath + "/" + i + "." + App.TEXT_EXTENSION);
         FileWriter fw = new FileWriter(outputText, false);
-        fw.write(classNumber + " 0.5 0.5 1.0 1.0");
+        double w = img.getWidth();
+        double h = img.getHeight();
+
+        for (BoxLabel l : boxLabels) {
+            BoxLabel nl = l.copy();
+
+            final double boxOffset = 6;
+            if (l.classNumber != 0) {
+                nl.x -= boxOffset;
+                nl.y -= boxOffset;
+                nl.w += boxOffset*2;
+                nl.h += boxOffset*2;
+            }
+
+            FileHelper.writeLabel(fw, nl, w, h);
+        }
+
         labelsFW.write(App.PROCESS_FOLDER_NAME + "/" + fileName + "\n");
         fw.close();
     }

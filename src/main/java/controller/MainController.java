@@ -68,7 +68,9 @@ public class MainController implements Initializable {
     private ArrayList<BoxLabel> _selectedLabels = new ArrayList<>();
 
     @Override
-    public void initialize(URL location, ResourceBundle resources) {}
+    public void initialize(URL location, ResourceBundle resources) {
+        openDirectoryByPath("C:\\Projects\\making_model\\pics");
+    }
 
     private void _drawPoint(GraphicsContext gc, Point2D point) {
 
@@ -267,6 +269,12 @@ public class MainController implements Initializable {
     private void repaintCanvas() {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+        gc.setFill(Color.YELLOW);
+        gc.setFont(Font.font(11));
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText(app.getCurrentFile().getName(), 10, 20);
+        gc.strokeText(app.getCurrentFile().getName(), 10, 20);
 
         for (BoxLabel label : app.boxLabels) {
             _drawBoxLabel(gc, label);

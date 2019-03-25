@@ -2,6 +2,7 @@ package model;
 
 import helper.FastNoise;
 import helper.FileHelper;
+import javafx.geometry.Point2D;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 import org.imgscalr.Scalr;
@@ -22,15 +23,20 @@ public class App {
     public final static String TEXT_EXTENSION = "txt";
     public final static String PROCESS_FOLDER_NAME = "process";
 
-    private final float NUMBER_OF_RANDOM_IMAGES = 7;
+    private final float NUMBER_OF_RANDOM_IMAGES = 4;
 
-    private final int[] scaleSizes = new int[]{20, 100, 200, 400};
-    private final float[] noiseStrengths = new float[] {0f, .25f, .5f, 1f};
-    private final float[] brightnesses = new float[]{.4f, .5f, .75f, 1f, 1.5f, 1.75f};
+    private final double[] cropSizes = new double[]{1088, 1280, 1600, 1920, 2340};
+    private final float[] noiseStrengths = new float[] {.5f};
+    private final float[] brightnesses = new float[]{.5f, 1.5f};
     private final double[] rotationAngles = new double[]{-10, 0, 10};
 
     private File _openedDirectory;
     private File[] _pics;
+
+    public File getCurrentFile() {
+        return _currentFile;
+    }
+
     private File _currentFile;
 
     public Image currentImage;
@@ -165,6 +171,8 @@ public class App {
 
                 FastNoise noise = new FastNoise();
                 noise.SetFractalOctaves(5);
+                noise.SetFrequency(.002f);
+
                 try {
                     img = ImageIO.read(f);
                 } catch (IOException e) {
@@ -172,55 +180,122 @@ public class App {
                     return;
                 }
 
-                for (BoxLabel l : boxLabels) {
+//                FileHelper.writeCroppedLabel(pPath, i++, img, boxLabels, labelsFW);
+
+//                for (float brightness : brightnesses) {
+//                    BufferedImage editedImage = Scalr.apply(img, new RescaleOp(brightness, 0, null));
+//                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, boxLabels, labelsFW);
+//                }
+
+//                for (BoxLabel l : boxLabels) {
                     // cropped label
-                    BufferedImage bi = img.getSubimage((int) l.x, (int) l.y, (int) l.w, (int) l.h);
+//                    BufferedImage bi = img.getSubimage((int) l.x, (int) l.y, (int) l.w, (int) l.h);
 
                     /* pre-processing */
 
                     // scaling to different sizes
-                    for (int size : scaleSizes) {
-                        BufferedImage scaledImage = Scalr.resize(bi, size);
-                        FileHelper.writeCroppedLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
+//                    for (int size : scaleSizes) {
+//                        BufferedImage scaledImage = Scalr.resize(bi, size);
+//                        FileHelper.writeCroppedLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
 
-                        Random random = new Random();
-                        for (int n = 0; n < NUMBER_OF_RANDOM_IMAGES; n++) {
-                            float noiseStr = noiseStrengths[random.nextInt(noiseStrengths.length)];
-                            float brightness = brightnesses[random.nextInt(brightnesses.length)];
-                            double angle = rotationAngles[random.nextInt(rotationAngles.length)];
+                for (double cropSize : cropSizes) {
+                    int w = img.getWidth();
+                    int h = img.getHeight();
 
-                            BufferedImage editedImage = scaledImage.getSubimage(0, 0, scaledImage.getWidth(), scaledImage.getHeight());
+                    // with aspectratio
+//                    double aspectRatio = (double) w / (double) h;
+//                    int wCrop = w < h ? (int) cropSize : (int) (cropSize * aspectRatio);
+//                    int hCrop = w > h ? (int) cropSize : (int) (cropSize * aspectRatio);
 
-                            // rotation
-                            editedImage = FileHelper.rotateImageByDegrees(editedImage, angle);
+                    // square
+                    int wCrop = (int) cropSize;
+                    int hCrop = (int) cropSize;
 
-                            // noise
-                            for (int x = 0; x < editedImage.getWidth(); x++) {
-                                for (int y = 0; y < editedImage.getHeight(); y++) {
-                                    Color pixel = new Color(editedImage.getRGB(x, y));
-                                    float noiseVal = noise.GetSimplexFractal(x, y) * noiseStr;
+                    for (int x = 0; x < w; x += wCrop) {
+                        for (int y = 0; y < h; y += hCrop) {
+                            int newX = x, newY = y;
 
-                                    int r = (int) (pixel.getRed() + noiseVal * 255);
-                                    int g = (int) (pixel.getGreen() + noiseVal * 255);
-                                    int b = (int) (pixel.getBlue() + noiseVal * 255);
+                            if (x + wCrop > w) newX = w - wCrop;
+                            if (y + hCrop > h) newY = h - hCrop;
 
-                                    Color newPixel = new Color(
-                                            Math.max(0, Math.min(r, 255)),
-                                            Math.max(0, Math.min(g, 255)),
-                                            Math.max(0, Math.min(b, 255))
-                                    );
+                            Rectangle imgRect = new Rectangle(0, 0, img.getWidth(), img.getHeight());
+                            Rectangle imgNewRect = new Rectangle(newX, newY, wCrop, hCrop);
+                            if (!imgRect.contains(imgNewRect)) continue;
 
-                                    editedImage.setRGB(x, y, newPixel.getRGB());
+                            BufferedImage croppedImage = img.getSubimage(newX, newY, wCrop, hCrop);
+                            Rectangle croppedRect = new Rectangle(newX, newY, wCrop, hCrop);
+
+                            ArrayList<BoxLabel> croppedLabels = new ArrayList<>();
+                            for (BoxLabel l : boxLabels) {
+                                boolean isInside = true;
+
+                                for (Point2D p : l.getPoints()) {
+                                    Point pointInt = new Point((int) p.getX(), (int) p.getY());
+                                    if (!croppedRect.contains(pointInt)) {
+                                        isInside = false;
+                                        break;
+                                    }
+                                }
+
+                                if (isInside) {
+                                    BoxLabel newL = l.copy();
+                                    newL.x -= newX;
+                                    newL.y -= newY;
+
+                                    croppedLabels.add(newL);
                                 }
                             }
 
-                            // brightness
-                            editedImage = Scalr.apply(editedImage, new RescaleOp(brightness, 0, null));
+                            if (croppedLabels.size() > 0) {
+                                FileHelper.writeCroppedLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
 
-                            FileHelper.writeCroppedLabel(pPath, i++, editedImage, l.classNumber, labelsFW);
+                                for (float brightness : brightnesses) {
+                                    BufferedImage editedImage = Scalr.apply(croppedImage, new RescaleOp(brightness, 0, null));
+                                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, croppedLabels, labelsFW);
+                                }
+                            }
                         }
                     }
                 }
+
+//                        Random random = new Random();
+//                        for (int n = 0; n < NUMBER_OF_RANDOM_IMAGES; n++) {
+//                            float noiseStr = noiseStrengths[random.nextInt(noiseStrengths.length)];
+//                            float brightness = brightnesses[random.nextInt(brightnesses.length)];
+//                            double angle = rotationAngles[random.nextInt(rotationAngles.length)];
+//
+//                            BufferedImage editedImage = img.getSubimage(0, 0, img.getWidth(), img.getHeight());
+//
+//                            // rotation
+//                            editedImage = FileHelper.rotateImageByDegrees(editedImage, angle);
+//
+//                            // noise
+//                            for (int x = 0; x < editedImage.getWidth(); x++) {
+//                                for (int y = 0; y < editedImage.getHeight(); y++) {
+//                                    Color pixel = new Color(editedImage.getRGB(x, y));
+//                                    float noiseVal = noise.GetSimplexFractal(x, y) * noiseStr;
+//
+//                                    int r = (int) (pixel.getRed() + noiseVal * 255);
+//                                    int g = (int) (pixel.getGreen() + noiseVal * 255);
+//                                    int b = (int) (pixel.getBlue() + noiseVal * 255);
+//
+//                                    Color newPixel = new Color(
+//                                            Math.max(0, Math.min(r, 255)),
+//                                            Math.max(0, Math.min(g, 255)),
+//                                            Math.max(0, Math.min(b, 255))
+//                                    );
+//
+//                                    editedImage.setRGB(x, y, newPixel.getRGB());
+//                                }
+//                            }
+//
+//                            // brightness
+//                            editedImage = Scalr.apply(editedImage, new RescaleOp(brightness, 0, null));
+//
+//                            FileHelper.writeCroppedLabel(pPath, i++, editedImage, boxLabels, labelsFW);
+//                        }
+//                    }
+//                }
             }
 
             labelsFW.close();
