@@ -83,13 +83,13 @@ public class FileHelper {
         for (BoxLabel l : boxLabels) {
             BoxLabel nl = l.copy();
 
-            final double boxOffset = 6;
-            if (l.classNumber != 0) {
-                nl.x -= boxOffset;
-                nl.y -= boxOffset;
-                nl.w += boxOffset*2;
-                nl.h += boxOffset*2;
-            }
+//            final double boxOffset = 6;
+//            if (l.classNumber != 0) {
+//                nl.x -= boxOffset;
+//                nl.y -= boxOffset;
+//                nl.w += boxOffset*2;
+//                nl.h += boxOffset*2;
+//            }
 
             FileHelper.writeLabel(fw, nl, w, h);
         }

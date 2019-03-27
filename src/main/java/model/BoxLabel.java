@@ -45,4 +45,23 @@ public class BoxLabel {
         this.w = l.w;
         this.h = l.h;
     }
+
+    public BoxLabel[] generateGrid(int columns, int rows, double spacing) {
+        BoxLabel[] labels = new BoxLabel[columns * rows];
+
+        double cellsW = this.w - spacing * (columns - 1);
+        double cellsH = this.h - spacing * (rows - 1);
+        BoxLabel cell = new BoxLabel(this.classNumber, this.x, this.y, cellsW / columns, cellsH / rows);
+        for (int col = 0; col < columns; col++) {
+            for (int row = 0; row < rows; row++) {
+                BoxLabel l = cell.copy();
+                l.x += l.w * col + spacing * col;
+                l.y += l.h * row + spacing * row;
+
+                labels[row * columns + col] = l;
+            }
+        }
+
+        return labels;
+    }
 }

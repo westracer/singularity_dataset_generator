@@ -25,7 +25,7 @@ public class App {
 
     private final float NUMBER_OF_RANDOM_IMAGES = 4;
 
-    private final double[] cropSizes = new double[]{1088, 1280, 1600, 1920, 2340};
+    private final double[] cropSizes = new double[]{832, 1600, 2340};
     private final float[] noiseStrengths = new float[] {.5f};
     private final float[] brightnesses = new float[]{.5f, 1.5f};
     private final double[] rotationAngles = new double[]{-10, 0, 10};
@@ -41,7 +41,7 @@ public class App {
 
     public Image currentImage;
     public ArrayList<BoxLabel> boxLabels = new ArrayList<>();
-    public Tetragon currentTetragon = new Tetragon();
+    public BoxLabel currentGrid;
 
     public void openDirectory(File dir) {
         this._openedDirectory = dir;
@@ -249,10 +249,10 @@ public class App {
                             if (croppedLabels.size() > 0) {
                                 FileHelper.writeCroppedLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
 
-                                for (float brightness : brightnesses) {
-                                    BufferedImage editedImage = Scalr.apply(croppedImage, new RescaleOp(brightness, 0, null));
-                                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, croppedLabels, labelsFW);
-                                }
+//                                for (float brightness : brightnesses) {
+//                                    BufferedImage editedImage = Scalr.apply(croppedImage, new RescaleOp(brightness, 0, null));
+//                                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, croppedLabels, labelsFW);
+//                                }
                             }
                         }
                     }

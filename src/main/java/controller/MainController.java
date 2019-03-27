@@ -13,9 +13,6 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
-import javafx.scene.shape.MoveTo;
-import javafx.scene.shape.Path;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.DirectoryChooser;
@@ -23,14 +20,13 @@ import javafx.stage.Stage;
 
 import model.App;
 import model.BoxLabel;
-import model.Tetragon;
 
 import java.io.File;
 import java.net.URL;
 import java.util.*;
 
 enum MainState {
-    Select, Move, Box, Tetragon
+    Select, Move, Box, Grid
 }
 
 enum PointDragState {
@@ -59,6 +55,7 @@ public class MainController implements Initializable {
     @FXML public TextField classField;
     @FXML public Button saveButton;
     @FXML public Button classButton;
+    @FXML public Button gridBoxesButton;
 
     private boolean _saved = true;
     private PointDragState _pointDrag = PointDragState.None;
@@ -69,7 +66,7 @@ public class MainController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        openDirectoryByPath("C:\\Projects\\making_model\\pics");
+        openDirectoryByPath("/Users/test/Documents/pics"); // "C:\\Projects\\making_model\\pics"
     }
 
     private void _drawPoint(GraphicsContext gc, Point2D point) {
@@ -79,7 +76,7 @@ public class MainController implements Initializable {
         gc.fillOval(point.getX() - POINT_SIZE/2, point.getY() - POINT_SIZE/2, POINT_SIZE, POINT_SIZE);
     }
 
-    private void _drawBoxLabel(GraphicsContext gc, BoxLabel label) {
+    private void _setLabelColor(GraphicsContext gc, BoxLabel label) {
         boolean isDraggable = label == _draggableLabel;
 
         if (isDraggable) {
@@ -93,6 +90,10 @@ public class MainController implements Initializable {
         } else {
             gc.setStroke(Color.YELLOW);
         }
+    }
+
+    private void _drawBoxLabel(GraphicsContext gc, BoxLabel label) {
+        boolean isDraggable = label == _draggableLabel;
 
         gc.setLineWidth(1);
 
@@ -113,144 +114,50 @@ public class MainController implements Initializable {
         }
     }
 
-    private void _drawTetragon(GraphicsContext gc) {
-        int tetSize = app.currentTetragon.points.size();
+    private void _drawGrid(GraphicsContext gc) {
+        if (_state != MainState.Grid || app.currentGrid == null) return;
 
-        if (tetSize > 2) {
-            double[] xPoints = app.currentTetragon.xPoints();
-            double[] yPoints = app.currentTetragon.yPoints();
-
-            gc.setFill(Color.rgb(100, 100, 255, .1));
-            gc.setStroke(Color.BLUE);
-            gc.setLineWidth(1);
-            gc.fillPolygon(xPoints, yPoints, tetSize);
-            gc.strokePolygon(xPoints, yPoints, tetSize);
-        }
-
-        for (Point2D p : app.currentTetragon.points) {
-//            _drawPoint(gc, p);
-        }
-
-        if (tetSize != 4) return;
-
-        int columns, rows;
-        double spacing;
-        try {
-            columns = Integer.parseInt(columnField.getText());
-            rows = Integer.parseInt(rowField.getText());
-            spacing = Double.parseDouble(spacingField.getText());
-        } catch (NumberFormatException ex) {
-            return;
-        }
-
-        if (spacing < 0) {
-            spacing = 0;
-        }
-
-        if (columns < 2 || rows < 2) {
-            return;
-        }
-
-        Line[] lines = app.currentTetragon.getEdges();
-        Point2D[] lineDistance = new Point2D[tetSize];
-        Point2D[] cellDistance = new Point2D[tetSize];
-
-        Point2D topLeft, topRight, bottomLeft;
-        topLeft = new Point2D(lines[0].getStartX(), lines[0].getStartY());
-        topRight = new Point2D(lines[0].getEndX(), lines[0].getEndY());
-        bottomLeft = new Point2D(lines[2].getStartX(), lines[2].getStartY());
-
-//        _drawPoint(gc, topLeft);
-//        _drawPoint(gc, bottomLeft);
-
+        gc.setStroke(Color.DARKCYAN);
+        gc.setFill(Color.DARKCYAN);
         gc.setLineWidth(1);
-        gc.setStroke(Color.rgb(120, 120, 255, .8));
 
-//        _drawMesh(gc, lines[0], lines[2], rows, topLeft, topRight);
-//        _drawMesh(gc, lines[3], lines[1], columns, topLeft, bottomLeft);
+        BoxLabel label = app.currentGrid.fixNegativeSize();
 
-        Line startVer = lines[0], endVer = lines[2];
-        Point2D startPointVer = topLeft, endPointVer = topRight;
-        Line startHor = lines[3], endHor = lines[1];
-        Point2D startPointHor = topLeft, endPointHor = bottomLeft;
+        gc.strokeRect(label.x, label.y, label.w, label.h);
 
-        double xDistStartVer = ( startVer.getStartX() - endVer.getStartX() ) / columns;
-        double yDistStartVer = ( startVer.getStartY() - endVer.getStartY() ) / columns;
-        double xDistEndVer = ( startVer.getEndX() - endVer.getEndX() ) / columns;
-        double yDistEndVer = ( startVer.getEndY() - endVer.getEndY() ) / columns;
+        gc.setFont(Font.font(11));
+        gc.setTextAlign(TextAlignment.LEFT);
+        gc.fillText(Integer.toString(label.classNumber), label.x + 10, label.y + 20);
+        gc.strokeText(Integer.toString(label.classNumber), label.x + 10, label.y + 20);
 
-        double xDistStartHor = ( startHor.getStartX() - endHor.getStartX() ) / rows;
-        double yDistStartHor = ( startHor.getStartY() - endHor.getStartY() ) / rows;
-        double xDistEndHor = ( startHor.getEndX() - endHor.getEndX() ) / rows;
-        double yDistEndHor = ( startHor.getEndY() - endHor.getEndY() ) / rows;
-
-        Tetragon[][] cells = new Tetragon[columns][rows];
-        for (int x = 0; x < columns; x++) {
-            for (int y = 0; y < rows; y++) {
-                cells[x][y] = new Tetragon();
-            }
+        for (Point2D p : label.getPoints()) {
+            _drawPoint(gc, p);
         }
 
-        for (int x = -1; x < columns; x++) {
-            for (int y = -1; y < rows; y++) {
-                Line verticalLine = new Line(startPointHor.getX() - (x + 1) * xDistStartHor,
-                        startPointHor.getY() - (x + 1) * yDistStartHor,
-                        endPointHor.getX() - (x + 1) * xDistEndHor,
-                        endPointHor.getY() - (x + 1) * yDistEndHor);
-
-                Line horizontalLine = new Line(startPointVer.getX() - (y + 1) * xDistStartVer,
-                        startPointVer.getY() - (y + 1) * yDistStartVer,
-                        endPointVer.getX() - (y + 1) * xDistEndVer,
-                        endPointVer.getY() - (y + 1) * yDistEndVer);
-
-                Path s = (Path) Line.intersect(verticalLine, horizontalLine);
-                MoveTo m = ((MoveTo) s.getElements().get(0));
-
-                for (int i = 0; i <= 1; i++) {
-                    for (int j = 0; j <= 1; j++) {
-                        if (x + i >= 0 && y + j >= 0 && x + i < columns && y + j < columns) {
-                            cells[x + i][y + j].points.add(new Point2D(m.getX(), m.getY()));
-                        }
-                    }
-                }
-            }
-        }
-
-
-        for (int x = 0; x < columns; x++) {
-            for (int y = 0; y < rows; y++) {
-                Tetragon t = cells[x][y];
-                ArrayList<Point2D> points = t.points;
-                Point2D p = points.get(1);
-                points.remove(p);
-                points.add(0, p);
-
-                t.getBox();
-
-                gc.setFill(Color.RED);
-//                gc.fillPolygon(t.xPoints(), t.yPoints(), points.size());
-//                System.out.println(cells[x][y].points.size());
-            }
+        gc.setStroke(Color.DARKCYAN);
+        for (BoxLabel l : _getGridLabels()) {
+            _drawBoxLabel(gc, l);
         }
     }
 
-    private void _drawMesh(GraphicsContext gc, Line start, Line end, int count, Point2D startPoint, Point2D endPoint) {
-        double xDistStart = ( start.getStartX() - end.getStartX() ) / count;
-        double yDistStart = ( start.getStartY() - end.getStartY() ) / count;
-        double xDistEnd = ( start.getEndX() - end.getEndX() ) / count;
-        double yDistEnd = ( start.getEndY() - end.getEndY() ) / count;
+    private BoxLabel[] _getGridLabels() {
+        int rows, columns;
+        double spacing;
+        BoxLabel grid = app.currentGrid;
 
-        gc.setLineWidth(1);
-        gc.setStroke(Color.RED);
-
-        for (int i = 0; i < count - 1; i++) {
-            gc.strokeLine(
-                    startPoint.getX() - (i + 1) * xDistStart,
-                    startPoint.getY() - (i + 1) * yDistStart,
-                    endPoint.getX() - (i + 1) * xDistEnd,
-                    endPoint.getY() - (i + 1) * yDistEnd
-            );
+        try {
+            rows = Integer.parseInt(rowField.getText());
+            columns  = Integer.parseInt(columnField.getText());
+            spacing = Double.parseDouble(spacingField.getText());
+        } catch (NumberFormatException ex) {
+            return new BoxLabel[] {};
         }
+
+        if (grid == null || rows < 1 || columns < 1 || spacing < 0) {
+            return new BoxLabel[] {};
+        }
+
+        return grid.generateGrid(columns, rows, spacing);
     }
 
     private void repaintImageCanvas() {
@@ -277,14 +184,16 @@ public class MainController implements Initializable {
         gc.strokeText(app.getCurrentFile().getName(), 10, 20);
 
         for (BoxLabel label : app.boxLabels) {
+            _setLabelColor(gc, label);
             _drawBoxLabel(gc, label);
         }
 
         if (_draggableLabel != null) {
+            _setLabelColor(gc, _draggableLabel);
             _drawBoxLabel(gc, _draggableLabel);
         }
 
-        _drawTetragon(gc);
+        _drawGrid(gc);
     }
 
     public void openDirectory() {
@@ -314,61 +223,74 @@ public class MainController implements Initializable {
         MouseButton mb = event.getButton();
 
         if (mb == MouseButton.PRIMARY) {
+            int classNumber = 0;
+
+            try {
+                classNumber = Integer.parseInt(classField.getText());
+            } catch (NumberFormatException ignored) {}
+
             switch (_state) {
                 case Select:
                 case Box:
-                    int classNumber = 0;
-
-                    try {
-                        classNumber = Integer.parseInt(classField.getText());
-                    } catch (NumberFormatException ignored) {}
-
                     _draggableLabel = new BoxLabel(classNumber, event.getX(), event.getY(), 0, 0);
                     _selectedLabels.clear();
                     break;
                 case Move:
-                    for (BoxLabel l : app.boxLabels) {
+                    Point2D clickedPoint = null;
+                    Point2D[] points = null;
 
-                        Point2D clickedPoint = null;
-                        Point2D[] points = l.getPoints();
+                    if (app.currentGrid != null) {
+                        points = app.currentGrid.getPoints();
+
                         for (Point2D p : points) {
                             if (Math.abs(p.getX() - CLICK_POINT_SIZE / 2 - event.getX()) < CLICK_POINT_SIZE
                                     && Math.abs(p.getY() - CLICK_POINT_SIZE / 2 - event.getY()) < CLICK_POINT_SIZE) {
                                 clickedPoint = p;
+                                _draggableLabel = app.currentGrid;
                                 break;
                             }
                         }
+                    } else {
+                        for (BoxLabel l : app.boxLabels) {
+                            points = l.getPoints();
 
-                        if (clickedPoint != null) {
-                            _draggableLabel = l;
+                            for (Point2D p : points) {
+                                if (Math.abs(p.getX() - CLICK_POINT_SIZE / 2 - event.getX()) < CLICK_POINT_SIZE
+                                        && Math.abs(p.getY() - CLICK_POINT_SIZE / 2 - event.getY()) < CLICK_POINT_SIZE) {
+                                    clickedPoint = p;
+                                    break;
+                                }
+                            }
 
-                            switch (Arrays.asList(points).indexOf(clickedPoint)) {
-                                case 0:
-                                    _pointDrag = PointDragState.TopLeft;
-                                    break;
-                                case 1:
-                                    _pointDrag = PointDragState.BottomLeft;
-                                    break;
-                                case 2:
-                                    _pointDrag = PointDragState.TopRight;
-                                    break;
-                                case 3:
-                                    _pointDrag = PointDragState.BottomRight;
-                                    break;
-                                default:
+                            if (clickedPoint != null) {
+                                _draggableLabel = l;
+                                break;
                             }
                         }
                     }
-                    break;
-                case Tetragon:
-                    _selectedLabels.clear();
 
-                    if (app.currentTetragon.points.size() == 4) {
-                        app.currentTetragon.points.clear();
+                    if (clickedPoint != null) {
+                        switch (Arrays.asList(points).indexOf(clickedPoint)) {
+                            case 0:
+                                _pointDrag = PointDragState.TopLeft;
+                                break;
+                            case 1:
+                                _pointDrag = PointDragState.BottomLeft;
+                                break;
+                            case 2:
+                                _pointDrag = PointDragState.TopRight;
+                                break;
+                            case 3:
+                                _pointDrag = PointDragState.BottomRight;
+                                break;
+                            default:
+                        }
                     }
 
-                    app.currentTetragon.points.add(new Point2D(event.getX(), event.getY()));
-
+                    break;
+                case Grid:
+                    app.currentGrid = new BoxLabel(classNumber, event.getX(), event.getY(), 0, 0);
+                    _selectedLabels.clear();
                     break;
             }
         }
@@ -426,7 +348,11 @@ public class MainController implements Initializable {
                         }
                     }
                     break;
-                case Tetragon:
+                case Grid:
+                    if (app.currentGrid == null) return;
+
+                    app.currentGrid.w = event.getX() - app.currentGrid.x;
+                    app.currentGrid.h = event.getY() - app.currentGrid.y;
                     break;
             }
 
@@ -497,7 +423,7 @@ public class MainController implements Initializable {
 
                     _pointDrag = PointDragState.None;
                     break;
-                case Tetragon:
+                case Grid:
                     break;
             }
             _saved = false;
@@ -518,7 +444,7 @@ public class MainController implements Initializable {
         } else if (source == moveRadio) {
             _state = MainState.Move;
         } else if (source == tetraRadio) {
-            _state = MainState.Tetragon;
+            _state = MainState.Grid;
         }
     }
 
@@ -526,6 +452,7 @@ public class MainController implements Initializable {
         switch (ev.getCode()) {
             case ESCAPE:
                 _selectedLabels.clear();
+                app.currentGrid = null;
                 repaintCanvas();
                 break;
             case DELETE:
@@ -607,5 +534,15 @@ public class MainController implements Initializable {
 
     public void process() {
         app.processImages();
+    }
+
+    public void onGridFieldChange() {
+        repaintCanvas();
+    }
+
+    public void createBoxes() {
+        app.boxLabels.addAll(Arrays.asList(_getGridLabels()));
+        app.currentGrid = null;
+        repaintCanvas();
     }
 }
