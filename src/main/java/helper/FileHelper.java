@@ -1,5 +1,6 @@
 package helper;
 
+import javafx.geometry.Point2D;
 import model.BoxLabel;
 import model.App;
 import org.imgscalr.Scalr;
@@ -12,6 +13,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 
 public class FileHelper {
     private static final double DOUBLE_ROUND = 10000.;
@@ -96,6 +98,63 @@ public class FileHelper {
 
         labelsFW.write(App.PROCESS_FOLDER_NAME + "/" + fileName + "\n");
         fw.close();
+    }
+    
+    public static AffineTransform createTransform(Point2D[] source,
+                                                  Point2D[] dest) {
+        double x11 = source[0].getX();
+        double x12 = source[0].getY();
+        double x21 = source[1].getX();
+        double x22 = source[1].getY();
+        double x31 = source[2].getX();
+        double x32 = source[2].getY();
+        double y11 = dest[0].getX();
+        double y12 = dest[0].getY();
+        double y21 = dest[1].getX();
+        double y22 = dest[1].getY();
+        double y31 = dest[2].getX();
+        double y32 = dest[2].getY();
+
+        final double v = (x11 - x21) * (x12 - x32) - (x11 - x31) * (x12 - x22);
+        double a1 = ((y11-y21)*(x12-x32)-(y11-y31)*(x12-x22))/
+                v;
+        double v1 = (x12 - x22) * (x11 - x31) - (x12 - x32) * (x11 - x21);
+        double a2 = ((y11-y21)*(x11-x31)-(y11-y31)*(x11-x21))/
+                v1;
+        double a3 = y11-a1*x11-a2*x12;
+        double a4 = ((y12-y22)*(x12-x32)-(y12-y32)*(x12-x22))/
+                v;
+        double a5 = ((y12-y22)*(x11-x31)-(y12-y32)*(x11-x21))/
+                v1;
+        double a6 = y12-a4*x11-a5*x12;
+        return new AffineTransform(a1, a4, a2, a5, a3, a6);
+    }
+
+    public static double getRandomDouble(double val) {
+        Random r = new Random();
+        double sign = r.nextBoolean() ? 1 : -1;
+
+        return sign * r.nextDouble() * App.PERSPECTIVE_TRANSFORM_OFFSET * val;
+    }
+
+    public static BufferedImage applyAffineTransform(BufferedImage img, AffineTransform at) {
+        int w = img.getWidth(), h = img.getHeight();
+
+        BufferedImage warped = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = warped.createGraphics();
+
+        g2d.setColor(Color.LIGHT_GRAY);
+        g2d.fillRect(0, 0, w + 10, h + 10);
+
+        // TODO: find new size by polygon bounds
+
+        g2d.setTransform(at);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.drawImage(img, 0, 0, null);
+        g2d.dispose();
+
+        return warped;
     }
 
     public static BufferedImage rotateImageByDegrees(BufferedImage img, double angle) {

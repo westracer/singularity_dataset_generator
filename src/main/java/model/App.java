@@ -5,16 +5,14 @@ import helper.FileHelper;
 import javafx.geometry.Point2D;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
-import org.imgscalr.Scalr;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.awt.image.RescaleOp;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
 
 public class App {
     public App() {}
@@ -22,8 +20,9 @@ public class App {
     private final static String[] IMAGE_EXTENSIONS = new String[] {"jpg", "jpeg", "png"};
     public final static String TEXT_EXTENSION = "txt";
     public final static String PROCESS_FOLDER_NAME = "process";
+    public final static double PERSPECTIVE_TRANSFORM_OFFSET = .1;
 
-    private final float NUMBER_OF_RANDOM_IMAGES = 4;
+    private final float NUMBER_OF_RANDOM_IMAGES = 10;
 
     private final double[] cropSizes = new double[]{832, 1600, 2340};
     private final float[] noiseStrengths = new float[] {.5f};
@@ -198,61 +197,125 @@ public class App {
 //                        BufferedImage scaledImage = Scalr.resize(bi, size);
 //                        FileHelper.writeCroppedLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
 
-                for (double cropSize : cropSizes) {
-                    int w = img.getWidth();
-                    int h = img.getHeight();
 
-                    // with aspectratio
+                BufferedImage orig = img;
+                ArrayList<BoxLabel> oldLabels = boxLabels;
+                int size = oldLabels.size();
+                for (int j = 0; j < NUMBER_OF_RANDOM_IMAGES; j++) {
+                    int w = img.getWidth(), h = img.getHeight();
+                    int min = Math.min(w, h);
+
+                    if (size > 0 && j != 0) {
+                        Point2D[] src = new Point2D[] {
+                                new Point2D(0, 0),
+                                new Point2D(0, h),
+                                new Point2D(w, 0),
+                        };
+
+                        Point2D[] dst = new Point2D[] {
+                                new Point2D(FileHelper.getRandomDouble(min), FileHelper.getRandomDouble(min)),
+                                new Point2D(FileHelper.getRandomDouble(min), h + FileHelper.getRandomDouble(min)),
+                                new Point2D(w + FileHelper.getRandomDouble(min), FileHelper.getRandomDouble(min)),
+                        };
+
+                        AffineTransform at = FileHelper.createTransform(src, dst);
+                        img = FileHelper.applyAffineTransform(orig, at);
+
+                        boxLabels = new ArrayList<>();
+
+                        double[] oldCoords = new double[size*8];
+                        double[] newCoords = new double[size*8];
+
+                        for (int l = 0; l < size; l++) {
+                            BoxLabel label = oldLabels.get(l);
+                            oldCoords[l*8] = label.x;
+                            oldCoords[l*8 + 1] = label.y;
+                            oldCoords[l*8 + 2] = label.x + label.w;
+                            oldCoords[l*8 + 3] = label.y;
+                            oldCoords[l*8 + 4] = label.x;
+                            oldCoords[l*8 + 5] = label.y + label.h;
+                            oldCoords[l*8 + 6] = label.x + label.w;
+                            oldCoords[l*8 + 7] = label.y + label.h;
+                        }
+
+                        at.transform(oldCoords, 0, newCoords, 0, size*4);
+
+                        for (int l = 0; l < size; l++) {
+                            BoxLabel label = oldLabels.get(l);
+                            BoxLabel newLabel = label.copy();
+
+                            Polygon p = new Polygon();
+
+                            for (int offset = 0; offset < 8; offset += 2) {
+                                p.addPoint((int) newCoords[l*8 + offset], (int) newCoords[l*8 + offset + 1]);
+                            }
+
+                            Rectangle rect = p.getBounds();
+                            newLabel.x = rect.x;
+                            newLabel.y = rect.y;
+                            newLabel.w = rect.width;
+                            newLabel.h = rect.height;
+
+                            boxLabels.add(newLabel);
+                        }
+                    } else {
+                        boxLabels = oldLabels;
+                        img = orig;
+                    }
+
+                    for (double cropSize : cropSizes) {
+                        // with aspectratio
 //                    double aspectRatio = (double) w / (double) h;
 //                    int wCrop = w < h ? (int) cropSize : (int) (cropSize * aspectRatio);
 //                    int hCrop = w > h ? (int) cropSize : (int) (cropSize * aspectRatio);
 
-                    // square
-                    int wCrop = (int) cropSize;
-                    int hCrop = (int) cropSize;
+                        // square
+                        int wCrop = (int) cropSize;
+                        int hCrop = (int) cropSize;
 
-                    for (int x = 0; x < w; x += wCrop) {
-                        for (int y = 0; y < h; y += hCrop) {
-                            int newX = x, newY = y;
+                        for (int x = 0; x < w; x += wCrop) {
+                            for (int y = 0; y < h; y += hCrop) {
+                                int newX = x, newY = y;
 
-                            if (x + wCrop > w) newX = w - wCrop;
-                            if (y + hCrop > h) newY = h - hCrop;
+                                if (x + wCrop > w) newX = w - wCrop;
+                                if (y + hCrop > h) newY = h - hCrop;
 
-                            Rectangle imgRect = new Rectangle(0, 0, img.getWidth(), img.getHeight());
-                            Rectangle imgNewRect = new Rectangle(newX, newY, wCrop, hCrop);
-                            if (!imgRect.contains(imgNewRect)) continue;
+                                Rectangle imgRect = new Rectangle(0, 0, img.getWidth(), img.getHeight());
+                                Rectangle imgNewRect = new Rectangle(newX, newY, wCrop, hCrop);
+                                if (!imgRect.contains(imgNewRect)) continue;
 
-                            BufferedImage croppedImage = img.getSubimage(newX, newY, wCrop, hCrop);
-                            Rectangle croppedRect = new Rectangle(newX, newY, wCrop, hCrop);
+                                BufferedImage croppedImage = img.getSubimage(newX, newY, wCrop, hCrop);
+                                Rectangle croppedRect = new Rectangle(newX, newY, wCrop, hCrop);
 
-                            ArrayList<BoxLabel> croppedLabels = new ArrayList<>();
-                            for (BoxLabel l : boxLabels) {
-                                boolean isInside = true;
+                                ArrayList<BoxLabel> croppedLabels = new ArrayList<>();
+                                for (BoxLabel l : boxLabels) {
+                                    boolean isInside = true;
 
-                                for (Point2D p : l.getPoints()) {
-                                    Point pointInt = new Point((int) p.getX(), (int) p.getY());
-                                    if (!croppedRect.contains(pointInt)) {
-                                        isInside = false;
-                                        break;
+                                    for (Point2D p : l.getPoints()) {
+                                        Point pointInt = new Point((int) p.getX(), (int) p.getY());
+                                        if (!croppedRect.contains(pointInt)) {
+                                            isInside = false;
+                                            break;
+                                        }
+                                    }
+
+                                    if (isInside) {
+                                        BoxLabel newL = l.copy();
+                                        newL.x -= newX;
+                                        newL.y -= newY;
+
+                                        croppedLabels.add(newL);
                                     }
                                 }
 
-                                if (isInside) {
-                                    BoxLabel newL = l.copy();
-                                    newL.x -= newX;
-                                    newL.y -= newY;
-
-                                    croppedLabels.add(newL);
-                                }
-                            }
-
-                            if (croppedLabels.size() > 0) {
-                                FileHelper.writeCroppedLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
+                                if (croppedLabels.size() > 0) {
+                                    FileHelper.writeCroppedLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
 
 //                                for (float brightness : brightnesses) {
 //                                    BufferedImage editedImage = Scalr.apply(croppedImage, new RescaleOp(brightness, 0, null));
 //                                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, croppedLabels, labelsFW);
 //                                }
+                                }
                             }
                         }
                     }
