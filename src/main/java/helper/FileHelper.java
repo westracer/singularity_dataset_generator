@@ -72,7 +72,14 @@ public class FileHelper {
         );
     }
 
-    public static void writeCroppedLabel(String dirPath, int i, BufferedImage img, ArrayList<BoxLabel> boxLabels, FileWriter labelsFW) throws IOException {
+    public static void writeCroppedLabel(String dirPath, int i, BufferedImage img, BoxLabel label) throws IOException {
+        String fileName = i + ".jpg";
+        File output = new File(dirPath + "/" + fileName);
+
+        ImageIO.write(img.getSubimage((int) label.x, (int) label.y, (int) label.w, (int) label.h), "jpg", output);
+    }
+
+    public static void writeCroppedImageLabel(String dirPath, int i, BufferedImage img, ArrayList<BoxLabel> boxLabels, FileWriter labelsFW) throws IOException {
         String fileName = i + ".jpg";
         File output = new File(dirPath + "/" + fileName);
 
@@ -85,13 +92,13 @@ public class FileHelper {
         for (BoxLabel l : boxLabels) {
             BoxLabel nl = l.copy();
 
-//            final double boxOffset = 6;
-//            if (l.classNumber != 0) {
-//                nl.x -= boxOffset;
-//                nl.y -= boxOffset;
-//                nl.w += boxOffset*2;
-//                nl.h += boxOffset*2;
-//            }
+            final double boxOffset = 17;
+            if (l.classNumber != 0) {
+                nl.x -= boxOffset;
+                nl.y -= boxOffset;
+                nl.w += boxOffset*2;
+                nl.h += boxOffset*2;
+            }
 
             FileHelper.writeLabel(fw, nl, w, h);
         }

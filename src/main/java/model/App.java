@@ -179,11 +179,21 @@ public class App {
                     return;
                 }
 
-//                FileHelper.writeCroppedLabel(pPath, i++, img, boxLabels, labelsFW);
+                // separate class labels by folders
+                /*
+                for (BoxLabel l : boxLabels) {
+                    dir = new File(pPath + "/" + l.classNumber);
+                    dir.mkdir();
+
+                    FileHelper.writeCroppedLabel(pPath + "/" + l.classNumber, i++, img, l);
+                }
+                */
+
+//                FileHelper.writeCroppedImageLabel(pPath, i++, img, boxLabels, labelsFW);
 
 //                for (float brightness : brightnesses) {
 //                    BufferedImage editedImage = Scalr.apply(img, new RescaleOp(brightness, 0, null));
-//                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, boxLabels, labelsFW);
+//                    FileHelper.writeCroppedImageLabel(pPath, i++, editedImage, boxLabels, labelsFW);
 //                }
 
 //                for (BoxLabel l : boxLabels) {
@@ -195,7 +205,8 @@ public class App {
                     // scaling to different sizes
 //                    for (int size : scaleSizes) {
 //                        BufferedImage scaledImage = Scalr.resize(bi, size);
-//                        FileHelper.writeCroppedLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
+//                        FileHelper.writeCroppedImageLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
+
 
 
                 BufferedImage orig = img;
@@ -309,11 +320,11 @@ public class App {
                                 }
 
                                 if (croppedLabels.size() > 0) {
-                                    FileHelper.writeCroppedLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
+                                    FileHelper.writeCroppedImageLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
 
 //                                for (float brightness : brightnesses) {
 //                                    BufferedImage editedImage = Scalr.apply(croppedImage, new RescaleOp(brightness, 0, null));
-//                                    FileHelper.writeCroppedLabel(pPath, i++, editedImage, croppedLabels, labelsFW);
+//                                    FileHelper.writeCroppedImageLabel(pPath, i++, editedImage, croppedLabels, labelsFW);
 //                                }
                                 }
                             }
@@ -355,7 +366,7 @@ public class App {
 //                            // brightness
 //                            editedImage = Scalr.apply(editedImage, new RescaleOp(brightness, 0, null));
 //
-//                            FileHelper.writeCroppedLabel(pPath, i++, editedImage, boxLabels, labelsFW);
+//                            FileHelper.writeCroppedImageLabel(pPath, i++, editedImage, boxLabels, labelsFW);
 //                        }
 //                    }
 //                }

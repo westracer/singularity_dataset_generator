@@ -88,7 +88,7 @@ public class MainController implements Initializable {
         } else if (_selectedLabels.contains(label)) {
             gc.setStroke(Color.CYAN);
         } else {
-            gc.setStroke(Color.YELLOW);
+            gc.setStroke(Color.VIOLET);
         }
     }
 
@@ -177,7 +177,7 @@ public class MainController implements Initializable {
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-        gc.setFill(Color.YELLOW);
+        gc.setFill(Color.VIOLET);
         gc.setFont(Font.font(11));
         gc.setTextAlign(TextAlignment.LEFT);
         gc.fillText(app.getCurrentFile().getName(), 10, 20);
