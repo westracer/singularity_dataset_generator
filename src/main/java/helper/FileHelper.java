@@ -9,6 +9,8 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
+import java.awt.image.ConvolveOp;
+import java.awt.image.Kernel;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,6 +19,8 @@ import java.util.Random;
 
 public class FileHelper {
     private static final double DOUBLE_ROUND = 10000.;
+    private static final int MAX_BLUR = 4;
+    private static final int MAX_NOISE = 30;
 
     public static String getNameWithoutExtension(String str) {
         String[] dotSplit = str.split("\\.");
@@ -53,6 +57,42 @@ public class FileHelper {
         fw.write(labelText + '\n');
     }
 
+    public static BufferedImage randomBlur(BufferedImage img) {
+        Random r = new Random();
+        int radius = r.nextInt(MAX_BLUR);
+        int blurSize = radius * 2 + 1;
+        float weight = 1.0f / (blurSize * blurSize);
+        float[] blurData = new float[blurSize * blurSize];
+
+        for (int i = 0; i < blurData.length; i++) {
+            blurData[i] = weight;
+        }
+
+        Kernel kernel = new Kernel(blurSize, blurSize, blurData);
+        ConvolveOp op = new ConvolveOp(kernel, ConvolveOp.EDGE_ZERO_FILL, null);
+        return op.filter(img, null);
+    }
+
+    public static BufferedImage randomNoise(BufferedImage img) {
+        BufferedImage newImg = img.getSubimage(0, 0, img.getWidth(), img.getHeight());
+        Random r = new Random();
+
+        for (int x = 0; x < img.getWidth(); x++) {
+            for (int y = 0; y < img.getHeight(); y++) {
+                Color pixel = new Color(img.getRGB(x, y));
+                Color newPixel = new Color(
+                        Math.max(0, Math.min(255, pixel.getRed() + ( (r.nextBoolean() ? -1 : 1) * r.nextInt(MAX_NOISE) ))),
+                        Math.max(0, Math.min(255, pixel.getGreen() + ( (r.nextBoolean() ? -1 : 1) * r.nextInt(MAX_NOISE) ))),
+                        Math.max(0, Math.min(255, pixel.getBlue() + ( (r.nextBoolean() ? -1 : 1) * r.nextInt(MAX_NOISE) )))
+                );
+
+                newImg.setRGB(x, y, newPixel.getRGB());
+            }
+        }
+
+        return newImg;
+    }
+
     public static BoxLabel readLabel(String[] split, double w, double h) throws NumberFormatException {
         int classNumber;
         double xRelCenter, yRelCenter, wRel, hRel;
@@ -83,24 +123,14 @@ public class FileHelper {
         String fileName = i + ".jpg";
         File output = new File(dirPath + "/" + fileName);
 
-        ImageIO.write(Scalr.resize(img, 1088), "jpg", output);
+        ImageIO.write(Scalr.resize(img, 832), "jpg", output);
         File outputText = new File(dirPath + "/" + i + "." + App.TEXT_EXTENSION);
         FileWriter fw = new FileWriter(outputText, false);
         double w = img.getWidth();
         double h = img.getHeight();
 
         for (BoxLabel l : boxLabels) {
-            BoxLabel nl = l.copy();
-
-            final double boxOffset = 17;
-            if (l.classNumber != 0) {
-                nl.x -= boxOffset;
-                nl.y -= boxOffset;
-                nl.w += boxOffset*2;
-                nl.h += boxOffset*2;
-            }
-
-            FileHelper.writeLabel(fw, nl, w, h);
+            FileHelper.writeLabel(fw, l, w, h);
         }
 
         labelsFW.write(App.PROCESS_FOLDER_NAME + "/" + fileName + "\n");

@@ -24,7 +24,7 @@ public class App {
 
     private final float NUMBER_OF_RANDOM_IMAGES = 10;
 
-    private final double[] cropSizes = new double[]{832, 1600, 2340};
+    private final double[] cropSizes = new double[]{832, 1080, 1280, 1600};
     private final float[] noiseStrengths = new float[] {.5f};
     private final float[] brightnesses = new float[]{.5f, 1.5f};
     private final double[] rotationAngles = new double[]{-10, 0, 10};
@@ -300,9 +300,23 @@ public class App {
 
                                 ArrayList<BoxLabel> croppedLabels = new ArrayList<>();
                                 for (BoxLabel l : boxLabels) {
-                                    boolean isInside = true;
+                                    if (l.classNumber == 1) continue;
 
-                                    for (Point2D p : l.getPoints()) {
+                                    boolean isInside = true;
+                                    BoxLabel newL = l.copy();
+
+                                    final double boxOffset = 6;
+
+                                    if (l.classNumber != 0) {
+                                        newL.x -= boxOffset;
+                                        newL.y -= boxOffset;
+                                        newL.w += boxOffset*2;
+                                        newL.h += boxOffset*2;
+
+                                        newL.classNumber--;
+                                    }
+
+                                    for (Point2D p : newL.getPoints()) {
                                         Point pointInt = new Point((int) p.getX(), (int) p.getY());
                                         if (!croppedRect.contains(pointInt)) {
                                             isInside = false;
@@ -311,13 +325,14 @@ public class App {
                                     }
 
                                     if (isInside) {
-                                        BoxLabel newL = l.copy();
                                         newL.x -= newX;
                                         newL.y -= newY;
-
                                         croppedLabels.add(newL);
                                     }
                                 }
+
+                                croppedImage = FileHelper.randomBlur(croppedImage);
+                                croppedImage = FileHelper.randomNoise(croppedImage);
 
                                 if (croppedLabels.size() > 0) {
                                     FileHelper.writeCroppedImageLabel(pPath, i++, croppedImage, croppedLabels, labelsFW);
