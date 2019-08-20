@@ -5,9 +5,17 @@ import helper.FileHelper;
 import javafx.geometry.Point2D;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
+import org.opencv.core.*;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.ml.Ml;
+import org.opencv.ml.SVM;
+import org.opencv.ml.TrainData;
+import org.opencv.objdetect.HOGDescriptor;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.Point;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -16,6 +24,8 @@ import java.util.Arrays;
 
 public class App {
     public App() {}
+
+    SVM svm;
 
     private final static String[] IMAGE_EXTENSIONS = new String[] {"jpg", "jpeg", "png"};
     public final static String TEXT_EXTENSION = "txt";
@@ -41,6 +51,23 @@ public class App {
     public Image currentImage;
     public ArrayList<BoxLabel> boxLabels = new ArrayList<>();
     public BoxLabel currentGrid;
+    public Mat currentImageMat;
+
+    public int predict(BoxLabel label) {
+        HOGDescriptor hog = new HOGDescriptor(
+                new Size(48, 48),
+                new Size(24, 24),
+                new Size(12, 12),
+                new Size(12, 12),
+                9
+        );
+
+        Rect rect = new Rect((int) (label.x), (int) (label.y), (int) label.w, (int) label.h);
+        Mat labelMat = currentImageMat.submat(rect);
+        MatOfFloat desc = computeHOGDescriptorFromImage(labelMat, hog);
+
+        return (int) svm.predict(desc.reshape(0, 1));
+    }
 
     public void openDirectory(File dir) {
         this._openedDirectory = dir;
@@ -79,7 +106,21 @@ public class App {
     private void setCurrentImage(File file) {
         boxLabels.clear();
         _currentFile = file;
-        currentImage = new Image(file.toURI().toString());
+//        currentImage = new Image(file.toURI().toString());
+
+        Mat img = Imgcodecs.imread(file.getAbsolutePath());
+
+        Mat gray = new Mat();
+        Imgproc.cvtColor(img, gray, Imgproc.COLOR_BGR2GRAY);
+
+        Mat threshed = new Mat();
+        Imgproc.adaptiveThreshold(gray, threshed, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV, 25, 12);
+
+        MatOfByte byteMat = new MatOfByte();
+        Imgcodecs.imencode(".jpg", threshed, byteMat);
+        currentImage = new Image(new ByteArrayInputStream(byteMat.toArray()));
+        currentImageMat = threshed;
+
         loadLabels();
     }
 
@@ -147,6 +188,18 @@ public class App {
         }
     }
 
+    private MatOfFloat computeHOGDescriptorFromImage(Mat img, HOGDescriptor hog) {
+        Mat im = img.clone();
+        if (im.rows() != 48 || im.cols() != 48) {
+            Imgproc.resize(img, im, new Size(48, 48));
+        }
+
+        MatOfFloat descriptors = new MatOfFloat();
+        hog.compute(im, descriptors);
+
+        return descriptors;
+    }
+
     public void processImages() {
         File prevFile = _currentFile;
 
@@ -197,12 +250,12 @@ public class App {
 //                }
 
 //                for (BoxLabel l : boxLabels) {
-                    // cropped label
+                // cropped label
 //                    BufferedImage bi = img.getSubimage((int) l.x, (int) l.y, (int) l.w, (int) l.h);
 
-                    /* pre-processing */
+                /* pre-processing */
 
-                    // scaling to different sizes
+                // scaling to different sizes
 //                    for (int size : scaleSizes) {
 //                        BufferedImage scaledImage = Scalr.resize(bi, size);
 //                        FileHelper.writeCroppedImageLabel(pPath, i++, scaledImage, l.classNumber, labelsFW);
@@ -391,6 +444,86 @@ public class App {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        setCurrentImage(prevFile);
+    }
+
+    public void trainSVM() {
+        File prevFile = _currentFile;
+
+        HOGDescriptor hog = new HOGDescriptor(
+                new Size(48, 48),
+                new Size(24, 24),
+                new Size(12, 12),
+                new Size(12, 12),
+                9
+        );
+        ArrayList<MatOfFloat> sampleList = new ArrayList<>();
+        ArrayList<Integer> responseList = new ArrayList<>();
+        int errors = 0, all = 0;
+
+        for (File f : _pics) {
+            setCurrentImage(f);
+
+            Mat imgMat = Imgcodecs.imread(_currentFile.getAbsolutePath());
+
+            Mat gray = new Mat();
+            Imgproc.cvtColor(imgMat, gray, Imgproc.COLOR_BGR2GRAY);
+
+            Mat threshed = new Mat();
+            Imgproc.adaptiveThreshold(gray, threshed, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY_INV, 25, 12);
+
+            MatOfByte byteMat = new MatOfByte();
+            Imgcodecs.imencode(".jpg", threshed, byteMat);
+            currentImage = new Image(new ByteArrayInputStream(byteMat.toArray()));
+
+            for (BoxLabel l : boxLabels) {
+                // лишние данные в датасете
+                if (l.classNumber == 0) {
+                    continue;
+                }
+
+                int newClass = l.classNumber - 1;
+
+                Rect rect = new Rect((int) (l.x), (int) (l.y), (int) l.w, (int) l.h);
+                Mat labelMat = threshed.submat(rect);
+                MatOfFloat desc = computeHOGDescriptorFromImage(labelMat, hog);
+                sampleList.add(desc);
+                responseList.add(newClass);
+
+                Mat rowSample = desc.reshape(0,1);
+                int predicted = (int) svm.predict(rowSample);
+                if (predicted != newClass) {
+                    errors++;
+                }
+
+                all++;
+            }
+        }
+
+        int descriptorSize = sampleList.get(0).rows();  // дескрипторы одного размера, т.к. семплы одного размера
+        Mat samples = new Mat(sampleList.size(), descriptorSize, CvType.CV_32FC1);
+        Mat responses = new Mat(sampleList.size(), 1, CvType.CV_32S);
+
+        // Записываем дескрипторы в виде строк матрицы. Респонзы - в виде матрицы-столбца.
+        for (int j = 0; j < sampleList.size(); j++) {
+            Mat sample = sampleList.get(j);
+
+            for (int k = 0; k < descriptorSize; k++) {
+                samples.put(j, k, sample.get(k, 0));
+                responses.put(j, 0, responseList.get(j));
+            }
+        }
+
+        TrainData trainData = TrainData.create(samples, Ml.ROW_SAMPLE, responses);
+
+        SVM svm = SVM.create();
+        svm.setKernel(SVM.RBF);
+        svm.setC(12.5);
+        svm.setGamma(0.50625);
+
+        svm.train(trainData);
+        svm.save("test.svm");
 
         setCurrentImage(prevFile);
     }
